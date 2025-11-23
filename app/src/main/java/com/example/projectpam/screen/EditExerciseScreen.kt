@@ -1,87 +1,32 @@
 package com.example.projectpam.screen
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import com.example.projectpam.data.ExerciseUi
 import com.example.projectpam.ui.theme.ProjectPAMTheme
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-import androidx.compose.foundation.clickable
+
+// samakan dengan warna hijau di AddExercise
+private val AppGreen = Color(0xFF00C853)
 
 @Composable
 fun EditExerciseScreen(
     exercise: ExerciseUi,
-    onSave: (name: String, durationMin: Int, timeDisplay: String) -> Unit,
+    onSave: (ExerciseUi) -> Unit,
     onCancel: () -> Unit
 ) {
-    val context = LocalContext.current
-
-    var name by remember { mutableStateOf(exercise.name) }
+    var activityType by remember { mutableStateOf(exercise.name) }
     var durationText by remember { mutableStateOf(exercise.durationMin.toString()) }
-
-    // calendar untuk picker; kita mulai dari sekarang saja
-    val calendar = remember { Calendar.getInstance() }
-
-    // default isi time: pakai yang sudah ada di exercise
     var timeText by remember { mutableStateOf(exercise.time) }
-
-    // TimePickerDialog
-    val timePickerDialog = remember {
-        TimePickerDialog(
-            context,
-            { _, hourOfDay, minute ->
-                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
-                calendar.set(Calendar.MINUTE, minute)
-
-                timeText = SimpleDateFormat(
-                    "d MMM, yyyy • HH:mm",
-                    Locale.getDefault()
-                ).format(calendar.time)
-            },
-            calendar.get(Calendar.HOUR_OF_DAY),
-            calendar.get(Calendar.MINUTE),
-            true
-        )
-    }
-
-    // DatePickerDialog → setelah pilih tanggal lanjut pilih jam
-    val datePickerDialog = remember {
-        DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                calendar.set(year, month, dayOfMonth)
-                timePickerDialog.show()
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        )
-    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 16.dp)
-            .navigationBarsPadding()
-            .imePadding()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = "Edit exercise",
@@ -91,13 +36,20 @@ fun EditExerciseScreen(
                 .padding(bottom = 16.dp)
         )
 
+        val textFieldColors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = AppGreen,
+            focusedLabelColor = AppGreen,
+            cursorColor = AppGreen
+        )
+
         OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
+            value = activityType,
+            onValueChange = { activityType = it },
             label = { Text("Activity type") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp)
+                .padding(bottom = 12.dp),
+            colors = textFieldColors
         )
 
         OutlinedTextField(
@@ -106,34 +58,37 @@ fun EditExerciseScreen(
             label = { Text("Duration (minutes)") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp)
+                .padding(bottom = 12.dp),
+            colors = textFieldColors
         )
 
         OutlinedTextField(
             value = timeText,
-            onValueChange = { },
-            readOnly = true,
+            onValueChange = { timeText = it },
             label = { Text("Time / Date") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp)
-                .clickable { datePickerDialog.show() }
+                .padding(bottom = 24.dp),
+            colors = textFieldColors
         )
 
         Button(
             onClick = {
                 val duration = durationText.toIntOrNull() ?: 0
-                if (name.isNotBlank() && duration > 0 && timeText.isNotBlank()) {
-                    onSave(name, duration, timeText)
+                if (activityType.isNotBlank() && duration > 0) {
+                    val updated = exercise.copy(
+                        name = activityType,
+                        durationMin = duration,
+                        time = timeText
+                    )
+                    onSave(updated)
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
-                .padding(bottom = 12.dp),
-            shape = RoundedCornerShape(24.dp),
+                .padding(bottom = 8.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF00C853),
+                containerColor = AppGreen,
                 contentColor = Color.White
             )
         ) {
@@ -142,13 +97,13 @@ fun EditExerciseScreen(
 
         OutlinedButton(
             onClick = onCancel,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(1.dp, Color(0xFFB0BEC5)),
+            modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Color(0xFF607D8B)
+                contentColor = AppGreen
+            ),
+            border = ButtonDefaults.outlinedButtonBorder.copy(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(AppGreen)
             )
         ) {
             Text("Cancel")
@@ -159,17 +114,16 @@ fun EditExerciseScreen(
 @Preview(showBackground = true)
 @Composable
 fun EditExerciseScreenPreview() {
-    val dummy = ExerciseUi(
-        id = 1,
-        name = "Running",
-        durationMin = 30,
-        calories = 300,
-        time = "23 Nov, 2025 • 06:44"
-    )
     ProjectPAMTheme {
         EditExerciseScreen(
-            exercise = dummy,
-            onSave = { _, _, _ -> },
+            exercise = ExerciseUi(
+                id = 1,
+                name = "Running",
+                durationMin = 30,
+                calories = 300,
+                time = "Today • 07:30"
+            ),
+            onSave = {},
             onCancel = {}
         )
     }

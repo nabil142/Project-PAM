@@ -1,314 +1,346 @@
 package com.example.projectpam.screen
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.projectpam.data.ExerciseUi
-import com.example.projectpam.ui.theme.ProjectPAMTheme
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     activities: List<ExerciseUi>,
-    onAddExercise: (name: String, durationMin: Int, time: String) -> Unit,
-    onUpdateExercise: (ExerciseUi) -> Unit
+    onAddExercise: (name: String, durationMin: Int, timeDisplay: String) -> Unit,
+    onUpdateExercise: (ExerciseUi) -> Unit,
+    onDeleteExercise: (ExerciseUi) -> Unit,
 ) {
+    // ====== state untuk bottom sheet ======
     var showAddSheet by remember { mutableStateOf(false) }
     var showEditSheet by remember { mutableStateOf(false) }
-    var selectedExercise by remember { mutableStateOf<ExerciseUi?>(null) }
+    var exerciseToEdit by remember { mutableStateOf<ExerciseUi?>(null) }
 
-    val goalCalories = 500
-    val totalCalories = activities.sumOf { it.calories }
+    // ====== hitung progress kalori ======
+    val totalKcal = activities.sumOf { it.calories }
+    val goalKcal = 500
+    val progress = (totalKcal.toFloat() / goalKcal.coerceAtLeast(1)).coerceIn(0f, 1f)
 
-    val targetProgress = (totalCalories.toFloat() / goalCalories.toFloat())
-        .coerceIn(0f, 1f)
-
-    val animatedProgress by animateFloatAsState(
-        targetValue = targetProgress,
-        animationSpec = tween(durationMillis = 1200),
-        label = "kcalProgress"
-    )
-
-    // ---------- Bottom Sheet: Add ----------
-    if (showAddSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showAddSheet = false },
-            dragHandle = { BottomSheetDefaults.DragHandle() }
-        ) {
-            AddExerciseScreen(
-                onSave = { name, duration, time ->
-                    onAddExercise(name, duration, time)
-                    showAddSheet = false
-                },
-                onCancel = { showAddSheet = false }
-            )
-        }
+    val todayText = remember {
+        val today = LocalDate.now()
+        val formatter = DateTimeFormatter.ofPattern("d MMM, EEEE", Locale.ENGLISH)
+        today.format(formatter)
     }
 
-    // ---------- Bottom Sheet: Edit ----------
-    if (showEditSheet && selectedExercise != null) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                showEditSheet = false
-                selectedExercise = null
-            },
-            dragHandle = { BottomSheetDefaults.DragHandle() }
-        ) {
-            EditExerciseScreen(
-                exercise = selectedExercise!!,
-                onSave = { newName, newDuration, newTime ->
-                    val updated = selectedExercise!!.copy(
-                        name = newName,
-                        durationMin = newDuration,
-                        calories = newDuration * 5,
-                        time = newTime
-                    )
-                    onUpdateExercise(updated)
-                    showEditSheet = false
-                    selectedExercise = null
-                },
-                onCancel = {
-                    showEditSheet = false
-                    selectedExercise = null
-                }
-            )
-        }
-    }
+    Box(modifier = Modifier.fillMaxSize()) {
 
-    // ---------- Main Content ----------
-    Scaffold(
-        bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Button(
-                    onClick = { showAddSheet = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF00C853),
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text(text = "Add exercise")
-                }
-            }
-        }
-    ) { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(horizontal = 24.dp, vertical = 32.dp)
         ) {
-            // Header tanggal
+            // ====== HEADER TANGGAL ======
             Text(
-                text = "2 May, Monday",
-                style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 8.dp)
+                text = todayText,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
             )
 
-            // Donut kalori dengan animasi
-            Box(
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ====== LINGKARAN KALORI ======
+            KcalRing(
+                current = totalKcal,
+                goal = goalKcal,
+                progress = progress,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier.size(200.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val strokeWidth = 18.dp.toPx()
-                        val diameter = size.minDimension - strokeWidth
-                        val topLeft = Offset(
-                            (size.width - diameter) / 2f,
-                            (size.height - diameter) / 2f
-                        )
-
-                        drawArc(
-                            color = Color(0xFF00C853),
-                            startAngle = -90f,
-                            sweepAngle = 360f * animatedProgress,
-                            useCenter = false,
-                            style = Stroke(
-                                width = strokeWidth,
-                                cap = StrokeCap.Round
-                            ),
-                            topLeft = topLeft,
-                            size = Size(diameter, diameter)
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = totalCalories.toString(),
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2E7D32)
-                        )
-                        Text(
-                            text = "kcal burned today",
-                            fontSize = 14.sp,
-                            color = Color(0xFF8D6E63)
-                        )
-                    }
-                }
-            }
-
-            Text(
-                text = "Goal: $goalCalories kcal",
-                fontSize = 12.sp,
-                color = Color.Gray,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp, bottom = 12.dp)
+                    .height(260.dp)
             )
 
-            // Daily exercise title
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ====== TITLE LIST ======
             Text(
                 text = "Daily exercise",
-                style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 4.dp)
+                style = MaterialTheme.typography.titleMedium
             )
             Text(
                 text = "Log your activities and track calories burned",
-                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
-                modifier = Modifier.padding(bottom = 12.dp)
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF6B7280)
             )
 
-            // List aktivitas
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(activities) { activity ->
-                    ExerciseCard(
-                        activity = activity,
-                        onEditClick = {
-                            selectedExercise = activity
-                            showEditSheet = true
-                        }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ====== LIST AKTIVITAS ======
+            if (activities.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp)
+                        .background(
+                            color = Color(0xFFF3F4F6),
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Belum ada aktivitas.\nTap \"Add exercise\" untuk menambah.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF9CA3AF)
                     )
                 }
+            } else {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    activities.forEach { exercise ->
+                        ExerciseCard(
+                            exercise = exercise,
+                            onEdit = {
+                                exerciseToEdit = exercise
+                                showEditSheet = true
+                            },
+                            onDelete = {
+                                onDeleteExercise(exercise)
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // ====== BUTTON ADD EXERCISE ======
+            Button(
+                onClick = { showAddSheet = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF22C55E),
+                    contentColor = Color.White
+                )
+            ) {
+                Text("Add exercise")
+            }
+        }
+
+        // ====== BOTTOM SHEET: ADD ======
+        if (showAddSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showAddSheet = false },
+                dragHandle = { BottomSheetDefaults.DragHandle() }
+            ) {
+                AddExerciseScreen(
+                    onSave = { name, duration, time ->
+                        onAddExercise(name, duration, time)
+                        showAddSheet = false
+                    },
+                    onCancel = { showAddSheet = false }
+                )
+            }
+        }
+
+        // ====== BOTTOM SHEET: EDIT ======
+        if (showEditSheet && exerciseToEdit != null) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    showEditSheet = false
+                    exerciseToEdit = null
+                },
+                dragHandle = { BottomSheetDefaults.DragHandle() }
+            ) {
+                EditExerciseScreen(
+                    exercise = exerciseToEdit!!,
+                    onSave = { updated ->
+                        onUpdateExercise(updated)
+                        showEditSheet = false
+                        exerciseToEdit = null
+                    },
+                    onCancel = {
+                        showEditSheet = false
+                        exerciseToEdit = null
+                    }
+                )
             }
         }
     }
 }
 
+/**
+ * Lingkaran kalori seperti mockup:
+ * - track abu-abu
+ * - progress hijau
+ * - teks nilai kalori & goal di tengah
+ */
 @Composable
-fun ExerciseCard(
-    activity: ExerciseUi,
-    onEditClick: () -> Unit
+private fun KcalRing(
+    current: Int,
+    goal: Int,
+    progress: Float,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(
+            modifier = Modifier
+                .size(220.dp)
+        ) {
+            val strokeWidth = 18.dp.toPx()
+            val radius = size.minDimension / 2f - strokeWidth / 2f
+
+            // track abu-abu
+            drawCircle(
+                color = Color(0xFFE5E7EB),
+                style = Stroke(width = strokeWidth)
+            )
+
+            // progress hijau
+            drawArc(
+                color = Color(0xFF22C55E),
+                startAngle = -90f,
+                sweepAngle = 360f * progress,
+                useCenter = false,
+                size = Size(radius * 2, radius * 2),
+                topLeft = androidx.compose.ui.geometry.Offset(
+                    (size.width - radius * 2) / 2f,
+                    (size.height - radius * 2) / 2f
+                ),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = current.toString(),
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = Color(0xFF16A34A)
+            )
+            Text(
+                text = "kcal burned today",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF4B5563)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Goal: $goal kcal",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF9CA3AF)
+            )
+        }
+    }
+}
+
+/**
+ * Card aktivitas persis kaya contoh:
+ * - bulatan huruf depan (R, W, dsb)
+ * - nama aktivitas
+ * - durasi + kalori
+ * - waktu
+ * - ikon edit & delete di kanan
+ */
+@Composable
+private fun ExerciseCard(
+    exercise: ExerciseUi,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F5F5)
+            containerColor = Color(0xFFF3F4F6)
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // bulatan huruf depan
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF00C853)),
+                    .background(
+                        color = Color(0xFF22C55E),
+                        shape = CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = activity.name.firstOrNull()?.toString() ?: "",
+                    text = exercise.name.firstOrNull()?.uppercase() ?: "-",
                     color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
 
+            Spacer(modifier = Modifier.width(16.dp))
+
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp)
+                modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = activity.name,
-                    fontWeight = FontWeight.Medium
+                    text = exercise.name,
+                    style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "${activity.durationMin} min • ${activity.calories} kcal burned",
-                    fontSize = 12.sp,
-                    color = Color.Gray
+                    text = "${exercise.durationMin} min • ${exercise.calories} kcal burned",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF6B7280)
                 )
                 Text(
-                    text = activity.time,
-                    fontSize = 12.sp,
-                    color = Color.Gray
+                    text = exercise.time,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF9CA3AF)
                 )
             }
 
-            Text(
-                text = "Edit",
-                color = Color(0xFF2962FF),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable { onEditClick() }
-            )
-        }
-    }
-}
+            IconButton(onClick = onEdit) {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = "Edit",
+                    tint = Color(0xFF4B5563)
+                )
+            }
 
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    val dummy = listOf(
-        ExerciseUi(1, "Running", 30, 300, "Today • 07:30"),
-        ExerciseUi(2, "Walking", 20, 90, "Today • 09:15")
-    )
-    ProjectPAMTheme {
-        HomeScreen(
-            activities = dummy,
-            onAddExercise = { _, _, _ -> },
-            onUpdateExercise = {}
-        )
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = "Delete",
+                    tint = Color(0xFFEF4444)
+                )
+            }
+        }
     }
 }

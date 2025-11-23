@@ -2,10 +2,8 @@ package com.example.projectpam.screen
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,34 +19,39 @@ import java.util.Locale
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExerciseScreen(
     onSave: (name: String, durationMin: Int, timeDisplay: String) -> Unit,
     onCancel: () -> Unit
 ) {
     val context = LocalContext.current
-    var name by remember { mutableStateOf("") }
+
+    // ---- DROPDOWN STATE ----
+    val activityOptions = listOf("Running", "Walking", "Gym", "Swimming", "Cycling")
+    var expanded by remember { mutableStateOf(false) }
+    var activityType by remember { mutableStateOf(activityOptions.first()) }
+
+    // ---- DURATION STATE ----
     var durationText by remember { mutableStateOf("") }
 
-    // Calendar untuk simpan tanggal + jam
+    // ---- TIME / DATE STATE ----
     val calendar = remember { Calendar.getInstance() }
-
-    // default: sekarang (tanggal + jam)
     var timeText by remember {
         mutableStateOf(
-            SimpleDateFormat("d MMM, yyyy • HH:mm", Locale.getDefault())
-                .format(calendar.time)
+            SimpleDateFormat(
+                "d MMM, yyyy • HH:mm",
+                Locale.getDefault()
+            ).format(calendar.time)
         )
     }
 
-    // TimePickerDialog
     val timePickerDialog = remember {
         TimePickerDialog(
             context,
             { _, hourOfDay, minute ->
                 calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
                 calendar.set(Calendar.MINUTE, minute)
-
                 timeText = SimpleDateFormat(
                     "d MMM, yyyy • HH:mm",
                     Locale.getDefault()
@@ -56,17 +59,15 @@ fun AddExerciseScreen(
             },
             calendar.get(Calendar.HOUR_OF_DAY),
             calendar.get(Calendar.MINUTE),
-            true       // 24-hour format
+            true
         )
     }
 
-    // DatePickerDialog -> setelah pilih tanggal, lanjut pilih jam
     val datePickerDialog = remember {
         DatePickerDialog(
             context,
             { _, year, month, dayOfMonth ->
                 calendar.set(year, month, dayOfMonth)
-                // setelah tanggal dipilih, buka time picker
                 timePickerDialog.show()
             },
             calendar.get(Calendar.YEAR),
@@ -77,11 +78,11 @@ fun AddExerciseScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()                         // ⬅️ jangan full height
+            .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 16.dp)
-            .navigationBarsPadding()                // jaga jarak dari navbar
-            .imePadding()                           // jaga jarak dari keyboard
-            .verticalScroll(rememberScrollState()), // bisa scroll kalau kepanjangan
+            .navigationBarsPadding()
+            .imePadding()
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -92,16 +93,44 @@ fun AddExerciseScreen(
                 .padding(bottom = 16.dp)
         )
 
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Activity type") },
-            placeholder = { Text("Running, Walking, Cycling...") },
+        // ========== DROPDOWN: ACTIVITY TYPE ==========
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 12.dp)
-        )
+        ) {
+            TextField(
+                value = activityType,
+                onValueChange = { },
+                readOnly = true,
+                label = { Text("Activity type") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
 
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                activityOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            activityType = option
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        // ========== DURATION ==========
         OutlinedTextField(
             value = durationText,
             onValueChange = { durationText = it },
@@ -112,6 +141,7 @@ fun AddExerciseScreen(
                 .padding(bottom = 12.dp)
         )
 
+        // ========== TIME / DATE ==========
         OutlinedTextField(
             value = timeText,
             onValueChange = { },
@@ -120,39 +150,33 @@ fun AddExerciseScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 24.dp)
-                .clickable { datePickerDialog.show() } // klik -> pilih tanggal -> jam
+                .clickable { datePickerDialog.show() }
         )
 
+        // ========== BUTTONS ==========
         Button(
             onClick = {
                 val duration = durationText.toIntOrNull() ?: 0
-                if (name.isNotBlank() && duration > 0 && timeText.isNotBlank()) {
-                    onSave(name, duration, timeText)
+                if (activityType.isNotBlank() && duration > 0 && timeText.isNotBlank()) {
+                    onSave(activityType, duration, timeText)
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
-                .padding(bottom = 12.dp),
-            shape = RoundedCornerShape(24.dp),
+                .padding(bottom = 8.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF00C853),
+                containerColor = Color(0xFF00C853), // hijau
                 contentColor = Color.White
             )
         ) {
             Text("Save")
         }
-
         OutlinedButton(
             onClick = onCancel,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(1.dp, Color(0xFFB0BEC5)),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Color(0xFF607D8B)
-            )
+                .height(52.dp)
         ) {
             Text("Cancel")
         }
