@@ -1,54 +1,113 @@
-package com.example.projectpam.data
+    package com.example.projectpam.data
 
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+    import androidx.compose.runtime.mutableStateOf
+    import androidx.lifecycle.ViewModel
+    import androidx.lifecycle.viewModelScope
+    import kotlinx.coroutines.launch
 
-class NutritionViewModel : ViewModel() {
+    /**
+     * UI-state sederhana untuk Nutrition Screen
+     */
+    data class NutritionUiState(
+        val isLoading: Boolean = false,
+        val meals: List<MealEntry> = emptyList(),
+        val error: String? = null
+    )
 
-    var meals = mutableStateOf(listOf<MealEntry>())
-        private set
+    class NutritionViewModel : ViewModel() {
 
-    fun addFoodToMeal(mealType: String, food: FoodItem) {
-        val current = meals.value.toMutableList()
-        val existing = current.find { it.mealType == mealType }
+        var uiState = mutableStateOf(NutritionUiState())
+            private set
 
-        if (existing != null) {
-            val updated = existing.copy(
-                foods = existing.foods + food
-            )
-            current[current.indexOf(existing)] = updated
-        } else {
-            current.add(
-                MealEntry(mealType = mealType, foods = listOf(food))
-            )
-        }
+        private val repo = NutritionRepository
 
-        meals.value = current
-    }
+        val meals get() = uiState.value.meals
 
-    fun removeFoodFromMeal(mealType: String, foodId: String) {
-        val current = meals.value.toMutableList()
-        val index = current.indexOfFirst { it.mealType == mealType }
+        // simpan tanggal aktif yang sedang dipakai
+        private var currentDateLabel: String = "2 May, Monday"
 
-        if (index != -1) {
-            val meal = current[index]
-            val updatedFoods = meal.foods.filter { it.id != foodId }
+        /**
+         * LOAD semua meal untuk 1 tanggal (dipanggil dari Screen)
+         */
+        fun refresh(dateLabel: String) {
+            currentDateLabel = dateLabel
 
-            if (updatedFoods.isEmpty()) {
-                current.removeAt(index)
-            } else {
-                current[index] = meal.copy(foods = updatedFoods)
+            viewModelScope.launch {
+                uiState.value = uiState.value.copy(isLoading = true, error = null)
+
+                try {
+                    val list = repo.loadMealsForDate(dateLabel)
+                    uiState.value = uiState.value.copy(
+                        isLoading = false,
+                        meals = list
+                    )
+                } catch (e: Exception) {
+                    uiState.value = uiState.value.copy(
+                        isLoading = false,
+                        error = e.message
+                    )
+                }
             }
         }
 
-        meals.value = current
+        /**
+         * CREATE → Tambah makanan ke meal
+         */
+        fun addFoodToMeal(mealType: String, food: FoodItem) {
+            viewModelScope.launch {
+                try {
+                    repo.addFoodToMeal(
+                        mealType = mealType,
+                        food = food,
+                        selectedDateLabel = currentDateLabel
+                    )
+                    refresh(currentDateLabel) // reload
+                } catch (_: Exception) {
+                }
+            }
+        }
+
+        /**
+         * DELETE → Hapus makanan dari meal
+         */
+        fun removeFoodFromMeal(mealType: String, foodId: String) {
+            viewModelScope.launch {
+                try {
+                    repo.removeFoodFromMeal(
+                        mealType = mealType,
+                        foodId = foodId,
+                        selectedDateLabel = currentDateLabel
+                    )
+                    refresh(currentDateLabel)
+                } catch (_: Exception) {
+                }
+            }
+        }
+
+        /**
+         * UPDATE → Dipanggil dari EditFoodSheet
+         */
+        fun updateFood(mealType: String, updated: FoodItem) {
+            viewModelScope.launch {
+                try {
+                    repo.updateFoodInMeal(
+                        foodId = updated.id,
+                        newName = updated.name,
+                        newCalories = updated.calories
+                    )
+                    refresh(currentDateLabel)
+                } catch (_: Exception) {
+                }
+            }
+        }
+
+        fun getTotalCalories(): Int =
+            meals.sumOf { meal -> meal.foods.sumOf { it.calories } }
+
+        fun getMealCalories(mealType: String): Int =
+            meals.find { it.mealType == mealType }
+                ?.foods
+                ?.sumOf { it.calories }
+                ?: 0
     }
 
-    fun getTotalCalories(): Int {
-        return meals.value.sumOf { it.totalCalories }
-    }
-
-    fun getMealCalories(mealType: String): Int {
-        return meals.value.find { it.mealType == mealType }?.totalCalories ?: 0
-    }
-}

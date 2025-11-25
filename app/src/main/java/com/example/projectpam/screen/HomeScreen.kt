@@ -23,6 +23,11 @@ import com.example.projectpam.data.ExerciseUi
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,12 +37,10 @@ fun HomeScreen(
     onUpdateExercise: (ExerciseUi) -> Unit,
     onDeleteExercise: (ExerciseUi) -> Unit,
 ) {
-    // ====== state untuk bottom sheet ======
     var showAddSheet by remember { mutableStateOf(false) }
     var showEditSheet by remember { mutableStateOf(false) }
     var exerciseToEdit by remember { mutableStateOf<ExerciseUi?>(null) }
 
-    // ====== hitung progress kalori ======
     val totalKcal = activities.sumOf { it.calories }
     val goalKcal = 500
     val progress = (totalKcal.toFloat() / goalKcal.coerceAtLeast(1)).coerceIn(0f, 1f)
@@ -91,12 +94,12 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ====== LIST AKTIVITAS ======
+            // ====== LIST AKTIVITAS (YANG SCROLL) ======
             if (activities.isEmpty()) {
                 Box(
                     modifier = Modifier
+                        .weight(1f) // biar ngisi ruang tengah
                         .fillMaxWidth()
-                        .height(80.dp)
                         .background(
                             color = Color(0xFFF3F4F6),
                             shape = RoundedCornerShape(16.dp)
@@ -110,26 +113,24 @@ fun HomeScreen(
                     )
                 }
             } else {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    activities.forEach { exercise ->
+                    items(activities) { exercise ->
                         ExerciseCard(
                             exercise = exercise,
                             onEdit = {
                                 exerciseToEdit = exercise
                                 showEditSheet = true
                             },
-                            onDelete = {
-                                onDeleteExercise(exercise)
-                            }
+                            onDelete = { onDeleteExercise(exercise) }
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // ====== BUTTON ADD EXERCISE ======
             Button(
@@ -189,12 +190,7 @@ fun HomeScreen(
     }
 }
 
-/**
- * Lingkaran kalori seperti mockup:
- * - track abu-abu
- * - progress hijau
- * - teks nilai kalori & goal di tengah
- */
+
 @Composable
 private fun KcalRing(
     current: Int,
@@ -203,14 +199,27 @@ private fun KcalRing(
     modifier: Modifier = Modifier
 ) {
     val orange = Color(0xFFFFA935)
+    val green = Color(0xFF22C55E)
+
+    // animasi untuk progress lingkaran
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        label = "kcalProgress"
+    )
+
+    // kalau sudah memenuhi goal, warna jadi hijau
+    val targetColor = if (current >= goal) green else orange
+    val ringColor by animateColorAsState(
+        targetValue = targetColor,
+        label = "ringColor"
+    )
 
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         Canvas(
-            modifier = Modifier
-                .size(220.dp)
+            modifier = Modifier.size(220.dp)
         ) {
             val strokeWidth = 18.dp.toPx()
             val radius = size.minDimension / 2f - strokeWidth / 2f
@@ -221,11 +230,11 @@ private fun KcalRing(
                 style = Stroke(width = strokeWidth)
             )
 
-            // progress ORANGE — sesuai permintaan
+            // progress dengan animasi + warna dinamis
             drawArc(
-                color = orange,
+                color = ringColor,
                 startAngle = -90f,
-                sweepAngle = 360f * progress,
+                sweepAngle = 360f * animatedProgress,
                 useCenter = false,
                 size = Size(radius * 2, radius * 2),
                 topLeft = androidx.compose.ui.geometry.Offset(
@@ -245,7 +254,7 @@ private fun KcalRing(
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold
                 ),
-                color = orange // <- ANGKA KALORI DI TENGAH JADI ORANGE
+                color = ringColor    // angka ikut ganti hijau saat goal tercapai
             )
             Text(
                 text = "kcal burned today",
@@ -261,6 +270,7 @@ private fun KcalRing(
         }
     }
 }
+
 
 
 @Composable
