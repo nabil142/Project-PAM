@@ -202,6 +202,8 @@ private fun KcalRing(
     progress: Float,
     modifier: Modifier = Modifier
 ) {
+    val orange = Color(0xFFFFA935)
+
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
@@ -219,9 +221,9 @@ private fun KcalRing(
                 style = Stroke(width = strokeWidth)
             )
 
-            // progress hijau
+            // progress ORANGE — sesuai permintaan
             drawArc(
-                color = Color(0xFF22C55E),
+                color = orange,
                 startAngle = -90f,
                 sweepAngle = 360f * progress,
                 useCenter = false,
@@ -243,7 +245,7 @@ private fun KcalRing(
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold
                 ),
-                color = Color(0xFF16A34A)
+                color = orange // <- ANGKA KALORI DI TENGAH JADI ORANGE
             )
             Text(
                 text = "kcal burned today",
@@ -260,14 +262,7 @@ private fun KcalRing(
     }
 }
 
-/**
- * Card aktivitas persis kaya contoh:
- * - bulatan huruf depan (R, W, dsb)
- * - nama aktivitas
- * - durasi + kalori
- * - waktu
- * - ikon edit & delete di kanan
- */
+
 @Composable
 private fun ExerciseCard(
     exercise: ExerciseUi,

@@ -9,10 +9,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.projectpam.data.ExerciseViewModel
 import com.example.projectpam.screen.HomePage
+import com.example.projectpam.screen.HomeScreen
+import com.example.projectpam.screen.NutritionScreen
 import com.example.projectpam.screen.ProfileScreen
 import com.example.projectpam.screen.RegisterScreen
 import com.example.projectpam.screen.SplashScreen
@@ -55,17 +59,34 @@ fun AppNavigator() {
                 HomePage(navController)
             }
 
-            // Profile dengan parameter dari register
-            composable("profile/{name}/{profession}/{email}") { backStackEntry ->
-                ProfileScreen(
-                    navController = navController,
-                    name = backStackEntry.arguments?.getString("name"),
-                    profession = backStackEntry.arguments?.getString("profession"),
-                    email = backStackEntry.arguments?.getString("email")
+            // ============================
+            // HEALTH ROUTE FINAL
+            // ============================
+            composable("health") {
+                val vm: ExerciseViewModel = viewModel()
+                val state = vm.uiState.value
+
+                HomeScreen(
+                    activities = state.exercises,
+                    onAddExercise = { n, d, t -> vm.addExercise(n, d, t) },
+                    onUpdateExercise = { vm.updateExercise(it) },
+                    onDeleteExercise = { vm.deleteExercise(it.id) }
                 )
             }
 
-            // Profile tanpa parameter (dari navbar)
+            composable("nutrition") {
+                NutritionScreen(navController)
+            }
+
+            composable("profile/{name}/{profession}/{email}") { entry ->
+                ProfileScreen(
+                    navController = navController,
+                    name = entry.arguments?.getString("name"),
+                    profession = entry.arguments?.getString("profession"),
+                    email = entry.arguments?.getString("email")
+                )
+            }
+
             composable("profile") {
                 ProfileScreen(
                     navController = navController,
