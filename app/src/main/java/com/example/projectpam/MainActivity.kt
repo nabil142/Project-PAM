@@ -59,9 +59,6 @@ fun AppNavigator() {
                 HomePage(navController)
             }
 
-            // ============================
-            // HEALTH ROUTE FINAL
-            // ============================
             composable("health") {
                 val vm: ExerciseViewModel = viewModel()
                 val state = vm.uiState.value
@@ -78,23 +75,19 @@ fun AppNavigator() {
                 NutritionScreen(navController)
             }
 
-            composable("profile/{name}/{profession}/{email}") { entry ->
+            composable(route = "profile") {
                 ProfileScreen(
-                    navController = navController,
-                    name = entry.arguments?.getString("name"),
-                    profession = entry.arguments?.getString("profession"),
-                    email = entry.arguments?.getString("email")
+                    navController = navController
                 )
             }
 
-            composable("profile") {
+
+            composable(route = "profile") {
                 ProfileScreen(
-                    navController = navController,
-                    name = null,
-                    profession = null,
-                    email = null
+                    navController = navController
                 )
             }
+
         }
     }
 }

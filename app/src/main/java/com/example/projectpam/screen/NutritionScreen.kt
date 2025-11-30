@@ -39,7 +39,6 @@ fun NutritionScreen(navController: NavController) {
     var currentScreen by remember { mutableStateOf("main") }
     var selectedMealType by remember { mutableStateOf("Breakfast") }
 
-    // label tanggal & hari otomatis (hari ini)
     val todayLabel = remember {
         val calendar = Calendar.getInstance()
         val dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH)
@@ -53,7 +52,6 @@ fun NutritionScreen(navController: NavController) {
     val primaryOrange = Color(0xFFFFA935)
     val lightYellow = Color(0xFFC8D936)
 
-    // pertama kali load data untuk hari ini
     LaunchedEffect(Unit) {
         viewModel.refresh(selectedDate)
     }
@@ -76,9 +74,14 @@ fun NutritionScreen(navController: NavController) {
             selectedDate = selectedDate,
             onBack = { currentScreen = "main" },
             onFoodClick = { food ->
-                viewModel.addFoodToMeal(selectedMealType, food)
+                viewModel.onFoodSelected(
+                    mealType = selectedMealType,
+                    selectedDateLabel = selectedDate,
+                    food = food
+                )
                 currentScreen = "mealList"
             },
+
             onViewList = { currentScreen = "mealList" },
             primaryGreen = primaryGreen,
             lightYellow = lightYellow
@@ -89,12 +92,20 @@ fun NutritionScreen(navController: NavController) {
             selectedMealType = selectedMealType,
             selectedDate = selectedDate,
             onBack = { currentScreen = "search" },
-            onAddMore = { currentScreen = "search" },
+            onAddMore = {
+                viewModel.clearEditingFood()
+                currentScreen = "search"
+            },
+            onEditFood = { mealType, foodId ->
+                viewModel.startEditFood(mealType, foodId)
+                currentScreen = "search"
+            },
             onRemoveFood = { mealType, foodId ->
                 viewModel.removeFoodFromMeal(mealType, foodId)
             },
             primaryGreen = primaryGreen
         )
+
     }
 }
 
@@ -141,14 +152,12 @@ fun NutritionMainScreen(
         },
         bottomBar = {
             NavigationBar(containerColor = Color.White) {
-                // Home
                 NavigationBarItem(
                     selected = false,
                     onClick = { navController.navigate("home") },
                     icon = { Icon(Icons.Default.Home, null) },
                     label = { Text("Home") }
                 )
-                // Nutrition (current)
                 NavigationBarItem(
                     selected = true,
                     onClick = { /* already here */ },
@@ -159,14 +168,12 @@ fun NutritionMainScreen(
                         selectedTextColor = primaryGreen
                     )
                 )
-                // Health → sementara balik ke Home (tab Health ada di HomePage)
                 NavigationBarItem(
                     selected = false,
                     onClick = { navController.navigate("home") },
                     icon = { Icon(Icons.Default.Favorite, null) },
                     label = { Text("Health") }
                 )
-                // Profile
                 NavigationBarItem(
                     selected = false,
                     onClick = { navController.navigate("profile") },
@@ -186,7 +193,6 @@ fun NutritionMainScreen(
         ) {
             Spacer(Modifier.height(40.dp))
 
-            // CIRCULAR PROGRESS
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(200.dp)
@@ -342,7 +348,6 @@ fun NutritionSearchScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
-    // contoh list makanan lokal (bisa diganti dari Supabase kalau mau)
     val allFoods = listOf(
         FoodItem(id = "nasigoreng", name = "Nasi Goreng", calories = 250),
         FoodItem(id = "ayamgoreng", name = "Ayam Goreng", calories = 200),
@@ -478,7 +483,6 @@ fun FoodItemCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // icon kuning di kiri
             Box(
                 Modifier
                     .size(32.dp)
@@ -496,7 +500,6 @@ fun FoodItemCard(
 
             Spacer(Modifier.width(12.dp))
 
-            // teks ambil sisa space
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -504,7 +507,6 @@ fun FoodItemCard(
                 Text("${food.calories} kcal", fontSize = 12.sp, color = Color.Gray)
             }
 
-            // plus hijau di ujung kanan
             Box(
                 Modifier
                     .size(32.dp)
@@ -532,6 +534,7 @@ fun NutritionMealListScreen(
     selectedDate: String,
     onBack: () -> Unit,
     onAddMore: () -> Unit,
+    onEditFood: (String, String) -> Unit,
     onRemoveFood: (String, String) -> Unit,
     primaryGreen: Color
 ) {
@@ -570,7 +573,7 @@ fun NutritionMealListScreen(
                         Icon(Icons.Default.MoreVert, contentDescription = null)
                     }
                 },
-                colors = topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         }
     ) { padding ->
@@ -578,7 +581,6 @@ fun NutritionMealListScreen(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.White)
         ) {
             Spacer(Modifier.height(24.dp))
 
@@ -609,7 +611,8 @@ fun NutritionMealListScreen(
                     FoodRowItem(
                         food = food,
                         onEdit = {
-                            // nanti bisa diisi dialog edit
+
+                            onEditFood(selectedMealType, food.id)
                         },
                         onDelete = {
                             onRemoveFood(selectedMealType, food.id)
@@ -664,9 +667,14 @@ fun FoodRowItem(
                 Icon(Icons.Default.Edit, contentDescription = null)
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red)
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = Color.Red
+                )
             }
         }
     }
 }
+
 

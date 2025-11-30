@@ -46,7 +46,7 @@ class ExerciseViewModel : ViewModel() {
                 repo.addExercise(name, durationMin, timeDisplay)
                 refresh()
             } catch (_: Exception) {
-                // boleh tulis log / update error state
+
             }
         }
     }

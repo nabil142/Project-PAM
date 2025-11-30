@@ -58,7 +58,6 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(horizontal = 24.dp, vertical = 32.dp)
         ) {
-            // ====== HEADER TANGGAL ======
             Text(
                 text = todayText,
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -69,7 +68,6 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ====== LINGKARAN KALORI ======
             KcalRing(
                 current = totalKcal,
                 goal = goalKcal,
@@ -81,7 +79,6 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ====== TITLE LIST ======
             Text(
                 text = "Daily exercise",
                 style = MaterialTheme.typography.titleMedium
@@ -148,7 +145,6 @@ fun HomeScreen(
             }
         }
 
-        // ====== BOTTOM SHEET: ADD ======
         if (showAddSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showAddSheet = false },
@@ -164,7 +160,6 @@ fun HomeScreen(
             }
         }
 
-        // ====== BOTTOM SHEET: EDIT ======
         if (showEditSheet && exerciseToEdit != null) {
             ModalBottomSheet(
                 onDismissRequest = {
@@ -254,7 +249,7 @@ private fun KcalRing(
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold
                 ),
-                color = ringColor    // angka ikut ganti hijau saat goal tercapai
+                color = ringColor
             )
             Text(
                 text = "kcal burned today",

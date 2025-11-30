@@ -23,7 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.projectpam.R
 import com.example.projectpam.data.ExerciseViewModel
-import com.example.projectpam.data.NutritionViewModel   // ⬅️ IMPORT BARU
+import com.example.projectpam.data.NutritionViewModel
 
 private enum class BottomTab { HOME, NUTRITION, HEALTH }
 
@@ -31,15 +31,12 @@ private enum class BottomTab { HOME, NUTRITION, HEALTH }
 @Composable
 fun HomePage(navController: NavController) {
 
-    // ==== VIEWMODEL ====
     val exerciseViewModel: ExerciseViewModel = viewModel()
     val exerciseState = exerciseViewModel.uiState.value
 
-    val nutritionViewModel: NutritionViewModel = viewModel()   // ⬅️ VM NUTRISI
+    val nutritionViewModel: NutritionViewModel = viewModel()
 
-    // 🔥 total kalori terbakar (dari exercise)
     val burnKcal = exerciseState.exercises.sumOf { it.calories }
-    // 🍽 total kalori masuk (dari Supabase lewat NutritionViewModel)
     val eatenKcal = nutritionViewModel.getTotalCalories()
 
     val primaryGreen = Color(0xFF00C50D)
@@ -54,7 +51,6 @@ fun HomePage(navController: NavController) {
     var water by remember { mutableStateOf(0.7f) }
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
     var showDatePicker by remember { mutableStateOf(false) }
-    // label tanggal & hari otomatis (sama seperti di NutritionScreen)
     val todayLabel = remember {
         val calendar = java.util.Calendar.getInstance()
         val dayOfMonth = calendar.get(java.util.Calendar.DAY_OF_MONTH)
@@ -73,7 +69,6 @@ fun HomePage(navController: NavController) {
     var selectedDate by remember { mutableStateOf(todayLabel) }
 
 
-    // 🔁 SETIAP TANGGAL GANTI → REFRESH DATA NUTRISI
     LaunchedEffect(selectedDate) {
         nutritionViewModel.refresh(selectedDate)
     }
@@ -123,7 +118,7 @@ fun HomePage(navController: NavController) {
                 )
 
                 NavigationBarItem(
-                    selected = false, // atau biarin aja false, karena halaman ini cuma untuk HOME
+                    selected = false,
                     onClick = { navController.navigate("nutrition") },
                     icon = { Icon(Icons.Default.Restaurant, contentDescription = null) },
                     label = { Text("Nutrition") }
@@ -185,14 +180,12 @@ fun HomePage(navController: NavController) {
             }
 
             BottomTab.HOME -> {
-                // ============= HOME PAGE =============
                 Column(
                     Modifier
                         .fillMaxSize()
                         .padding(padding)
                 ) {
 
-                    // HEADER CURVE
                     Box(
                         Modifier
                             .fillMaxWidth()
@@ -239,7 +232,7 @@ fun HomePage(navController: NavController) {
                                         tint = primaryGreen
                                     )
                                     Text(
-                                        eatenKcal.toString(),            // ⬅️ SUDAH DINAMIS
+                                        eatenKcal.toString(),
                                         fontSize = 30.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -249,7 +242,6 @@ fun HomePage(navController: NavController) {
 
                             Spacer(Modifier.height(20.dp))
 
-                            // BURN BAR
                             Box(
                                 Modifier
                                     .width(166.dp)
@@ -260,7 +252,7 @@ fun HomePage(navController: NavController) {
                                 Box(
                                     Modifier
                                         .fillMaxHeight()
-                                        .fillMaxWidth(burnRatio)        // ⬅️ DINAMIS
+                                        .fillMaxWidth(burnRatio)
                                         .clip(RoundedCornerShape(50))
                                         .background(primaryOrange)
                                 )
@@ -268,7 +260,6 @@ fun HomePage(navController: NavController) {
 
                             Spacer(Modifier.height(10.dp))
 
-                            // EATEN BAR
                             Box(
                                 Modifier
                                     .width(166.dp)
@@ -279,7 +270,7 @@ fun HomePage(navController: NavController) {
                                 Box(
                                     Modifier
                                         .fillMaxHeight()
-                                        .fillMaxWidth(eatenRatio)       // ⬅️ DINAMIS
+                                        .fillMaxWidth(eatenRatio)
                                         .clip(RoundedCornerShape(50))
                                         .background(primaryGreen)
                                 )
@@ -296,7 +287,6 @@ fun HomePage(navController: NavController) {
                         }
                     }
 
-                    // BACKGROUND GREEN
                     Box(
                         Modifier
                             .fillMaxSize()
@@ -305,7 +295,6 @@ fun HomePage(navController: NavController) {
 
                         Column(Modifier.padding(16.dp)) {
 
-                            // WATER CARD
                             Card(
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -420,7 +409,6 @@ fun HomePage(navController: NavController) {
         }
     }
 
-    // DATE PICKER DIALOG
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState()
 

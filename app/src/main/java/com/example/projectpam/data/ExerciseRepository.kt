@@ -1,5 +1,6 @@
 package com.example.projectpam.data
 
+import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,30 +12,35 @@ object ExerciseRepository {
     private const val LOGS_TABLE = "exercise_logs"
     private const val CALORIES_TABLE = "activity_calories"
 
-    // sementara: user dummy (nanti bisa diganti auth uid)
     private const val DEMO_USER_ID = "demo-user-1"
 
-    // ========= LOAD SEMUA EXERCISE (user ini) =========
+    private suspend fun getCurrentUserId(): String {
+        val current = client.auth.currentUserOrNull()
+        return current?.id ?: DEMO_USER_ID
+    }
+
     suspend fun loadExercises(): List<ExerciseUi> = withContext(Dispatchers.IO) {
+        val userId = getCurrentUserId()
+
         val response = client.postgrest[LOGS_TABLE].select {
-            filter { eq("user_id", DEMO_USER_ID) }
+            filter { eq("user_id", userId) }
         }
 
         val rows = response.decodeList<ExerciseLogRow>()
         rows.map { it.toUi() }
     }
 
-    // ========= ADD (insert 1 log) =========
     suspend fun addExercise(
         activityType: String,
         durationMin: Int,
         timeDisplay: String
     ) = withContext(Dispatchers.IO) {
 
+        val userId = getCurrentUserId()
         val calories = calculateCalories(activityType, durationMin)
 
         val body = ExerciseLogInsert(
-            userId = DEMO_USER_ID,
+            userId = userId,
             activityType = activityType,
             durationMin = durationMin,
             calories = calories,
@@ -44,12 +50,11 @@ object ExerciseRepository {
         client.postgrest[LOGS_TABLE].insert(body)
     }
 
-    // ========= UPDATE =========
     suspend fun updateExercise(ex: ExerciseUi) = withContext(Dispatchers.IO) {
 
+        val userId = getCurrentUserId()
         val newCalories = calculateCalories(ex.name, ex.durationMin)
 
-        // pakai Map supaya tidak perlu DSL `set`
         val body = mapOf(
             "activity_type" to ex.name,
             "duration_min" to ex.durationMin,
@@ -60,22 +65,22 @@ object ExerciseRepository {
         client.postgrest[LOGS_TABLE].update(body) {
             filter {
                 eq("id", ex.id)
-                eq("user_id", DEMO_USER_ID)
+                eq("user_id", userId)
             }
         }
     }
 
-    // ========= DELETE =========
     suspend fun deleteExercise(id: Int) = withContext(Dispatchers.IO) {
+        val userId = getCurrentUserId()
+
         client.postgrest[LOGS_TABLE].delete {
             filter {
                 eq("id", id)
-                eq("user_id", DEMO_USER_ID)
+                eq("user_id", userId)
             }
         }
     }
 
-    // ========= HITUNG KALORI dari tabel activity_calories =========
     private suspend fun calculateCalories(
         activityType: String,
         durationMin: Int

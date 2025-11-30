@@ -10,7 +10,6 @@ import androidx.compose.ui.unit.dp
 import com.example.projectpam.data.ExerciseUi
 import com.example.projectpam.ui.theme.ProjectPAMTheme
 
-// samakan dengan warna hijau di AddExercise
 private val AppGreen = Color(0xFF00C853)
 
 @Composable

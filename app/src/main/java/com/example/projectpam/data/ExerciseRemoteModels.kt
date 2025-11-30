@@ -28,7 +28,6 @@ data class ActivityCaloriesRow(
     @SerialName("kcal_per_min")  val kcalPerMin: Int
 )
 
-// Mapping row → UI
 fun ExerciseLogRow.toUi() = ExerciseUi(
     id = id.toInt(),
     name = activityType,

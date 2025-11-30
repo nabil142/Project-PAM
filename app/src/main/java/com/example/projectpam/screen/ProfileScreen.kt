@@ -21,25 +21,61 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.projectpam.data.SupabaseClientProvider
+import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class Profile(
+    val id: String,
+    val email: String? = null,
+    val profession: String? = null,
+    val full_name: String? = null
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    navController: NavController,
-    name: String? = null,
-    profession: String? = null,
-    email: String? = null
-) {
-    val context = LocalContext.current
-    var showLogoutDialog by remember { mutableStateOf(false) }
+    navController: NavController
+)
+ {
+     val context = LocalContext.current
+     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    val primaryGreen = Color(0xFF91C788)
-    val lightPink = Color(0xFFFFE4E1)
-    val iconPink = Color(0xFFFF9E80)
+     val primaryGreen = Color(0xFF91C788)
+     val lightPink = Color(0xFFFFE4E1)
+     val iconPink = Color(0xFFFF9E80)
 
-    // Gunakan data dari parameter atau default
-    val displayName = name ?: "John Doe"
-    val displayProfession = profession ?: "User Casual"
+
+     val supabase = SupabaseClientProvider.client
+
+     var displayName by remember { mutableStateOf("John Doe") }
+     var displayProfession by remember { mutableStateOf("User Casual") }
+
+     LaunchedEffect(Unit) {
+         try {
+             val user = supabase.auth.currentUserOrNull()
+             if (user != null) {
+                 val profileList = supabase.postgrest["profiles"]
+                     .select {
+                         filter {
+                             eq("id", user.id)
+                         }
+                     }
+                     .decodeList<Profile>()
+
+                 val profile = profileList.firstOrNull()
+                 if (profile != null) {
+                     displayName = profile.full_name?.ifBlank { "John Doe" } ?: "John Doe"
+                     displayProfession = profile.profession?.ifBlank { "User Casual" } ?: "User Casual"
+                 }
+             }
+         } catch (e: Exception) {
+             Toast.makeText(context, "Gagal memuat profil: ${e.message}", Toast.LENGTH_SHORT).show()
+         }
+     }
+
 
     Scaffold(
         topBar = {
@@ -95,7 +131,7 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState())
         ) {
 
-            // PROFILE SECTION
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -135,14 +171,12 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // MENU ITEMS
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // EDIT PROFILE
                 ProfileMenuItemGreen(
                     icon = Icons.Default.Edit,
                     title = "Edit Profile",
@@ -150,8 +184,6 @@ fun ProfileScreen(
                         Toast.makeText(context, "Edit Profile clicked", Toast.LENGTH_SHORT).show()
                     }
                 )
-
-                // SETTINGS
                 ProfileMenuItemGreen(
                     icon = Icons.Default.Settings,
                     title = "Settings",
@@ -160,7 +192,6 @@ fun ProfileScreen(
                     }
                 )
 
-                // TERMS & PRIVACY
                 ProfileMenuItemGreen(
                     icon = Icons.Default.Description,
                     title = "Terms & Privacy Policy",
@@ -181,7 +212,7 @@ fun ProfileScreen(
         }
     }
 
-    // LOGOUT DIALOG
+
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },

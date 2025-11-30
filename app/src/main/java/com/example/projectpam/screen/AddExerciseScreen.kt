@@ -27,15 +27,11 @@ fun AddExerciseScreen(
 ) {
     val context = LocalContext.current
 
-    // ---- DROPDOWN STATE ----
     val activityOptions = listOf("Running", "Walking", "Gym", "Swimming", "Cycling")
     var expanded by remember { mutableStateOf(false) }
     var activityType by remember { mutableStateOf(activityOptions.first()) }
-
-    // ---- DURATION STATE ----
     var durationText by remember { mutableStateOf("") }
 
-    // ---- TIME / DATE STATE ----
     val calendar = remember { Calendar.getInstance() }
     var timeText by remember {
         mutableStateOf(
@@ -93,7 +89,6 @@ fun AddExerciseScreen(
                 .padding(bottom = 16.dp)
         )
 
-        // ========== DROPDOWN: ACTIVITY TYPE ==========
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded },
@@ -130,7 +125,6 @@ fun AddExerciseScreen(
             }
         }
 
-        // ========== DURATION ==========
         OutlinedTextField(
             value = durationText,
             onValueChange = { durationText = it },
@@ -141,7 +135,6 @@ fun AddExerciseScreen(
                 .padding(bottom = 12.dp)
         )
 
-        // ========== TIME / DATE ==========
         OutlinedTextField(
             value = timeText,
             onValueChange = { },
@@ -153,7 +146,6 @@ fun AddExerciseScreen(
                 .clickable { datePickerDialog.show() }
         )
 
-        // ========== BUTTONS ==========
         Button(
             onClick = {
                 val duration = durationText.toIntOrNull() ?: 0
@@ -166,7 +158,7 @@ fun AddExerciseScreen(
                 .height(52.dp)
                 .padding(bottom = 8.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF00C853), // hijau
+                containerColor = Color(0xFF00C853),
                 contentColor = Color.White
             )
         ) {

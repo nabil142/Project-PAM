@@ -3,9 +3,6 @@ package com.example.projectpam.data
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * Row & Insert model untuk tabel `nutrition_meals`
- */
 @Serializable
 data class NutritionMealRow(
     @SerialName("id")
@@ -33,9 +30,6 @@ data class NutritionMealInsert(
     val mealType: String
 )
 
-/**
- * Row & Insert model untuk tabel `nutrition_foods`
- */
 @Serializable
 data class NutritionFoodRow(
     @SerialName("id")

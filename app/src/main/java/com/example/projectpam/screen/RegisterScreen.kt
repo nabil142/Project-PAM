@@ -33,6 +33,7 @@ import io.github.jan.supabase.gotrue.providers.builtin.Email
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import io.github.jan.supabase.postgrest.postgrest
 
 @Composable
 fun RegisterScreen(
@@ -325,44 +326,50 @@ fun RegisterScreen(
 
             Button(
                 onClick = {
-                    if (name.isBlank() || profession.isBlank() || email.isBlank() || password.isBlank()) {
-                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-
-                    if (password.length < 6) {
-                        Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-
-                    isLoading = true
                     scope.launch {
+                        isLoading = true
+
                         try {
-                            // Register ke Supabase Auth
                             supabase.auth.signUpWith(Email) {
                                 this.email = email.trim()
                                 this.password = password
                             }
 
-                            Toast.makeText(context, "Registration success!", Toast.LENGTH_SHORT).show()
+                            // 2. Ambil user.id
+                            val user = supabase.auth.currentUserOrNull()
+                            if (user == null) {
+                                Toast.makeText(context, "Gagal mendapatkan user ID", Toast.LENGTH_SHORT).show()
+                                isLoading = false
+                                return@launch
+                            }
 
-                            // Encode data untuk URL safety
-                            val encodedName = URLEncoder.encode(name, StandardCharsets.UTF_8.toString())
-                            val encodedProfession = URLEncoder.encode(profession, StandardCharsets.UTF_8.toString())
-                            val encodedEmail = URLEncoder.encode(email, StandardCharsets.UTF_8.toString())
+                            // 3. INSERT KE TABEL profiles
+                            supabase.postgrest["profiles"].insert(
+                                mapOf(
+                                    "id" to user.id,
+                                    "full_name" to name.trim(),
+                                    "profession" to profession.trim(),
+                                    "email" to email.trim()
+                                )
+                            )
 
-                            navController.navigate("profile/$encodedName/$encodedProfession/$encodedEmail") {
+                            // 4. Beri toast sukses & pindah ke home
+                            Toast.makeText(context, "Register berhasil!", Toast.LENGTH_SHORT).show()
+
+                            navController.navigate("home") {
                                 popUpTo("register") { inclusive = true }
                             }
+
                         } catch (e: Exception) {
                             Toast.makeText(
                                 context,
-                                "Registration failed: ${e.message}",
+                                "Register gagal: ${e.message}",
                                 Toast.LENGTH_LONG
                             ).show()
                         } finally {
                             isLoading = false
                         }
+
                     }
                 },
                 modifier = Modifier
@@ -382,6 +389,8 @@ fun RegisterScreen(
                     Text("Create Account", fontSize = 16.sp, color = Color.White)
                 }
             }
+
+
         }
     }
 }
